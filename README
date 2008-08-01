@@ -1,0 +1,122 @@
+ActsAsS3Image
+=============
+
+acts_as_s3_image is an _ongoing_ effort to minimize the workload of handling of images stored at Amazon Simple Storage Service, S3. Its target is big sites hosted in an elastic cloud environment, with lots of images in lots of different sizes, especially if the number of sizes tend to increase or change from time to time. 
+
+acts_as_s3_image extends a model by handling image input, storage, processing and display. It takes image processing off the Rails request-response cycle, passing it on to either a Simple Daemon process or a BackgrounDRb worker and reducing the time the user would have to wait upon submitting an image.
+
+Requirements 
+=======
+
+requires RMagick, 'aws/s3' and either simple-daemon or backgroundrb (or both)
+
+Example
+=======
+
+== Model
+
+A model that acts_as_s3_image looks like this
+
+class Picture < ActiveRecord::Base
+  
+  belongs_to :user
+  
+  acts_as_s3_image :sizes => { '266x266'=>[266,266],
+                               '118x118'=>[118,118,'fixed'],
+                               '29x29'=>[29,29,'fixed']
+                              }, 
+				   :extension_column=>"extension", 
+				   :use_backgroundrb=>true
+
+end
+
+* :size: a hash with label => dim params. Label can be whatever is more mnemonic to you, we use widthxheight, could be "thumb", "micro" or whatever. dim is width, height and you can pass a third element if you want your image resized to be pixel-exact. By default, acts_as_s3_image resizes maintaining aspect ratio to be under your width and height.
+
+* :extension_column: at this point we need you to create a field on your picture model to hold the file extension. I'm planning to have another param where you'll pass a Proc to let act_as_s3_image figure out the extension for you.
+
+* :use_backgroundrb: whether you want to use the BackgrounDRb worker. Move it to your workers dir, it's under the examples dir.
+
+== Controller
+
+class PicturesController < ApplicationController
+  
+  before_filter :must_authenticate
+  
+  def create
+    @picture = Picture.new(params[:picture])  
+    @picture.user = current_user
+    @picture.save
+  end
+  
+end
+
+Where params[:picture] is your file input/upload field in the picture upload form.
+
+== Views
+
+At this point there are two view helpers.
+
+<%= s3_image_tag @picture, :label=>"29x29", :class=>"micro", :alt=>"small pic" %>
+
+A redefined image_tag helper, takes anything that image_tag takes plus the :label you want displayed. If the image is not processed at this dim at the point you call this (maybe right after the user has uploaded the image), the helper will display the original file at the dimension that refers to that label, ie, 29x29.
+
+<%= s3_url_for_label(@picture, "29x29") %>
+
+Prints the S3 url of that image in that dimension.
+
+== Migration
+
+acs_as_s3_image stores version info in a image_versions table. The label field is what you have defined in the params, so for every image in a given size, it stores one row in this table. The original file is kept for future changes in sizes, it is stored with a "null" label.
+
+class CreateImageVersions < ActiveRecord::Migration
+  def self.up
+    create_table :image_versions do |t|
+      t.integer :imageversionable_id, :version, :priority
+      t.string :imageversionable_type, :state, :error, :label
+      t.timestamps
+    end
+  end
+
+  def self.down
+    drop_table :image_versions
+  end
+end
+
+
+== Config
+
+You can find a template under examples. You should move it to the Rails config folder.
+
+s3:
+    access_key_id: 
+    secret_access_key: 
+    bucket: 
+app:
+    # not used for now
+    state_model: image_version
+---
+# these params will add up to your a3 uri to protect environment clashes of ids and images
+# so your s3 images will have a uri #{bucket}/#{act_as_s3_image_model_name}/#{namespace}/#{deployed_to}/#{id}.#{ext}
+# only deployed_to is optional, it won't show in the uri if it's omitted
+# we have yet to implement a rake task that would change uris if you change namespace, at this point this is rather
+# fixed so think about this before you start using this plugin
+development:
+    namespace: d
+
+production:
+    namespace: p
+    deployed_to: staging
+
+== ToDos
+
+* testing under Rails 2.1/Edge
+* writing tests / tidying up the code
+* docs
+* rake tasks for importing a legacy app to new scheme and processing new sizes in a batch
+* creating installer script and migration generator for image_versions
+* taking uri scheme as a Proc so you can change the uri scheme to your liking - good for legacy apps.
+* support for S3 datacenters other than US.
+* better handling of errors
+* checking up on backgroundrb and doing something nice when the work is done
+
+Copyright (c) 2008 Fabio Mont'Alegre <spiceee@codeazur.com.br>, released under the MIT license
