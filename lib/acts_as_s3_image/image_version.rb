@@ -3,6 +3,7 @@ class ImageVersion < ActiveRecord::Base
   belongs_to :imageversionable, :polymorphic=>true
   validates_uniqueness_of :imageversionable_type, :scope => [:label, :imageversionable_id]
   
+  before_save :set_extension
   after_create :pass_to_worker
   after_save :push_to_s3, :cleanup
   after_destroy :s3_destroy
@@ -52,8 +53,8 @@ class ImageVersion < ActiveRecord::Base
   end
 
   def local_path(label='')
-    ext = imageversionable.send(imageversionable.class.extension.to_sym)
-    label = label.blank? ? '' : "_#{label}" 
+    label = label.blank? ? '' : "_#{label}"
+    ext = pick_extension(label)
     "#{RAILS_ROOT}/tmp/#{imageversionable.class.to_s.underscore.pluralize.downcase}/#{imageversionable.id}#{label}.#{ext}"
   end
 
@@ -71,6 +72,10 @@ class ImageVersion < ActiveRecord::Base
     current_versions.find_by_label(label)
   end
 
+  def original
+    version_by_label(nil)
+  end
+
   def s3_url(options = {})
     s3 = imageversionable.class.config.s3
     "http://" << "#{s3['bucket']}.s3.amazonaws.com" << "/" << remote_path(options)
@@ -82,7 +87,7 @@ class ImageVersion < ActiveRecord::Base
     namespace =  config.env['namespace']
     deployed_to = (config.env['deployed_to'].nil?) ? '' : config.env['deployed_to'] + '/'
     label = (self.label.blank? || options[:orig]) ? '' : "_#{self.label}"
-    ext = imageversionable.send(imageversionable.class.extension.to_sym)
+    ext = options[:orig] ? original.extension : extension
     imageversionable.class.to_s.underscore.pluralize.downcase << "/#{namespace}/#{deployed_to}#{imageversionable.id}#{label}.#{ext}"
   end
 
@@ -145,6 +150,20 @@ class ImageVersion < ActiveRecord::Base
     if imageversionable.class.backgroundrb && (self.label.blank? && self.state == 'unprocessed')
       MiddleMan.new_worker :worker=>:s3_image_worker, :job_key=>self.id, :data=>{:version=>self.id, :force=>true}
     end
+  end
+  
+  def pick_extension(label='')
+    if label.blank?
+      extension
+    elsif not imageversionable.class.convert_to.blank?      
+      imageversionable.class.convert_to
+    else
+      original.extension
+    end
+  end
+  
+  def set_extension
+    self.extension = pick_extension(self.label)
   end
     
 end

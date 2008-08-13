@@ -25,14 +25,14 @@ class Picture < ActiveRecord::Base
                                '118x118'=>[118,118,'fixed'],
                                '29x29'=>[29,29,'fixed']
                               }, 
-				   :extension_column=>"extension", 
+				   :convert_to=>:jpg, 
 				   :use_backgroundrb=>true
 
 end
 
 * :size: a hash with label => dim params. Label can be whatever is more mnemonic to you, we use widthxheight, could be "thumb", "micro" or whatever. dim is width, height and you can pass a third element if you want your image resized to be pixel-exact. By default, acts_as_s3_image resizes maintaining aspect ratio to be under your width and height.
 
-* :extension_column: at this point we need you to create a field on your picture model to hold the file extension. I'm planning to have another param where you'll pass a Proc to let act_as_s3_image figure out the extension for you.
+* :convert_to: specify a format here if you want the versions to be a format other than the format of the original file.
 
 * :use_backgroundrb: whether you want to use the BackgrounDRb worker. Move it to your workers dir, it's under the examples dir.
 
@@ -50,7 +50,20 @@ class PicturesController < ApplicationController
   
 end
 
-Where params[:picture] is your file input/upload field in the picture upload form.
+Where params[:picture] is your file input/upload field in the picture upload form. Alternatively, you can pass in a file in
+the filesystem, as in @picture = "#{RAILS_ROOT}/somefile.jpg". In doing so, we won't test that file's mime-type, we trust that if you're associating a file yourself (other than have a user upload it) you know what you're doing.
+
+Notice that you don't have to necessarily extend a Model that holds a picture:
+
+class EventsController < ApplicationController
+    
+  def create
+    @event = Event.new(params[:event])  
+    @event.picture = params[:flyer][:picture]
+    @event.save
+  end
+  
+end
 
 == Views
 
@@ -72,7 +85,7 @@ class CreateImageVersions < ActiveRecord::Migration
   def self.up
     create_table :image_versions do |t|
       t.integer :imageversionable_id, :version, :priority
-      t.string :imageversionable_type, :state, :error, :label
+      t.string :imageversionable_type, :state, :error, :label, :extension
       t.timestamps
     end
   end

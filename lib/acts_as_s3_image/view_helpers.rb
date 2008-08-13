@@ -12,7 +12,7 @@ module AUPEO
           
           if version.nil?
             # get original if version doesn't exist/ is missing
-            version = obj.image_versions.first.version_by_label(nil)            
+            version = obj.image_versions.first.original            
             # force size wanted - this will produce an img tag with width and height to equal :label
             options[:width], options[:height] = (sizes[options[:label]])[(0..1)]
           end
@@ -31,4 +31,4 @@ module AUPEO
       end
     end
   end
-end        
+end
