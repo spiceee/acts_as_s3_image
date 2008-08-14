@@ -3,7 +3,7 @@
   * dropped need for extension_column in the caller model, extensions are handled automatically by plugin
   * added extension column in the image_versions table
   * picture=() now can take a string representing the path of an image in the filesystem as well as an uploaded image
-  * new :convert_to option will convert all versions to given format
+  * new :convert_to option will convert all versions to given format, keeps original format for future reconversions
 
 = 0.1
 
