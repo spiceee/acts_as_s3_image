@@ -55,7 +55,7 @@ class ImageVersion < ActiveRecord::Base
   def local_path(label='')
     label = label.blank? ? '' : "_#{label}"
     ext = pick_extension(label)
-    "#{RAILS_ROOT}/tmp/#{imageversionable.class.to_s.underscore.pluralize.downcase}/#{imageversionable.id}#{label}.#{ext}"
+    "#{RAILS_ROOT}/tmp/s3_image/#{imageversionable.class.to_s.underscore.pluralize.downcase}/#{imageversionable.id}#{label}.#{ext}"
   end
 
   def versions
@@ -96,10 +96,17 @@ class ImageVersion < ActiveRecord::Base
     file = File.read local_path(self.label)
     logger.info "pushing #{remote_path}"
     AWS::S3::S3Object.store remote_path, file, imageversionable.class.config.s3['bucket'], :access=>:public_read
+    public_grant = AWS::S3::ACL::Grant.grant :public_read
+    object = AWS::S3::S3Object.find remote_path, imageversionable.class.config.s3['bucket']
+    if not object.acl.grants.include? public_grant
+      object.acl.grants << public_grant
+      object.acl(object.acl)
+    end
   end
 
   # will only pull the original/master-no-label image
   def pull_from_s3
+    FileUtils.mkdir_p File.dirname local_path
     file = open(local_path, "wb") {|f| f << open(s3_url(:orig=>true)).read }
   end
 
@@ -155,7 +162,7 @@ class ImageVersion < ActiveRecord::Base
   def pick_extension(label='')
     if label.blank?
       extension
-    elsif not imageversionable.class.convert_to.blank?      
+    elsif not imageversionable.class.convert_to.blank?
       imageversionable.class.convert_to
     else
       original.extension

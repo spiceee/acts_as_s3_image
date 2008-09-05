@@ -1,3 +1,6 @@
+= 0.3
+  * moved local tmp path to RAILS_ROOT/tmp/s3_image/* to make it easy to symlink this dir to a capistrano shared dir so that if you're redeploying your site, any images being processed won't disappear
+
 = 0.2
 
   * dropped need for extension_column in the caller model, extensions are handled automatically by plugin

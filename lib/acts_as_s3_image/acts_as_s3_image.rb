@@ -10,11 +10,11 @@ module AUPEO
       
       module ActMacro
         # Configuration options are
+        # * +extension_column - which column to lookup for image extension (jpg, gif) in the original table
         # * +sizes+ - hash with all possible labels and their dimensions, as in {"thumb"=>[50,50]} 
         # You can also especify if the dimension should be of that fixed size (it will be cropped to be perfectly 50x50 in {"thumb"=>[50,50,"fixed"]})
         # The default is to limit the image, say by 50x50, but keep the aspect within those boundaries, so it can be 40x50 but never 55x50.
-        # * +convert_to+ - option to force convertion of images into a format, ex. :convert_to=>:jpg
-        # * +use_backgroundrb+ - optional param, set it to true to use the backgroundrb s3_image_worker, it will pass on the original image on creation so
+        # * +use_backgroundrb - optional param, set it to true to use the backgroundrb s3_image_worker, it will pass on the original image on creation so
         # the worker creates all the other sizes from it in the background (needs backgroundrb, of course)
         def acts_as_s3_image(options = {})
           class_eval do
@@ -44,7 +44,7 @@ module AUPEO
       module InstanceMethods
         
         def path
-          ["#{RAILS_ROOT}/tmp/#{self.class.to_s.underscore.pluralize.downcase}", "#{self.send(:id)}.#{self.extension}"] 
+          ["#{RAILS_ROOT}/tmp/s3_image/#{self.class.to_s.underscore.pluralize.downcase}", "#{self.send(:id)}.#{self.extension}"] 
         end
         
         def picture=(picture)

@@ -1,3 +1,4 @@
+require 'open-uri'
 require 'RMagick'
 require 'aws/s3'
 require 'acts_as_s3_image/config'

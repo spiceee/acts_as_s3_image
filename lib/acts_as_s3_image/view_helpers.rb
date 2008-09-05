@@ -4,7 +4,14 @@ module AUPEO
       module ViewHelpers
         
         def s3_image_tag(obj, options={})
-          return "" if obj.nil? || obj.image_versions.empty?
+          return "" if options[:label].nil?
+          
+          if obj.nil? || obj.image_versions.empty?
+            options[:src] = "/images/no_image_" + options[:label] + ".jpg"
+            options[:alt] = "no image"
+            options.delete(:label)
+            return tag(:img, options)
+          end
           
           options.symbolize_keys!
           version = obj.image_versions.first.version_by_label(options[:label])
@@ -31,4 +38,4 @@ module AUPEO
       end
     end
   end
-end
+end        
