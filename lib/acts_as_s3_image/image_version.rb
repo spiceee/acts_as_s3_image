@@ -36,6 +36,10 @@ class ImageVersion < ActiveRecord::Base
       def orientation(img)
         (img.rows > img.columns) ? "landscape" : "portrait"
       end
+      
+      def has_versions?(obj)
+        find(:first, :conditions=>["imageversionable_type = ? and imageversionable_id = ? and label is null", obj.class.to_s, obj.id])
+      end
 
     end
     

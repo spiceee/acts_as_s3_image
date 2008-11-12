@@ -6,7 +6,7 @@ module AUPEO
         def s3_image_tag(obj, options={})
           return "" if options[:label].nil?
           
-          if obj.nil? || obj.image_versions.empty?
+          if obj.nil? || (not ImageVersion.has_versions?(obj))
             options[:src] = "/images/no_image_" + options[:label] + ".jpg"
             options[:alt] = "no image"
             options.delete(:label)
@@ -31,11 +31,11 @@ module AUPEO
         end
         
         def s3_url_for_label(obj, label)
-          return "" if obj.nil? || obj.image_versions.empty?
+          return "" if obj.nil? || (not ImageVersion.has_versions?(obj))
           obj.image_versions.first.version_by_label(label).s3_url
         end
         
       end
     end
   end
-end        
+end
