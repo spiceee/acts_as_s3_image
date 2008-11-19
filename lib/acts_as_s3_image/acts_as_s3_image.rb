@@ -70,7 +70,10 @@ module AUPEO
         def save_orig
           if @picture
             create_dir(self.path[0])
-            File.open(self.path.join('/'), "wb") {|f| f << open(@picture).read }
+            @picture.rewind if @picture.is_a? StringIO
+            File.open(self.path.join('/'),'wb') do |f|
+              f.puts @picture.read
+            end
           end
         end
         
