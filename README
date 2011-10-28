@@ -1,11 +1,11 @@
 ActsAsS3Image
 =============
 
-acts_as_s3_image is an _ongoing_ effort to minimize the workload of handling of images stored at Amazon Simple Storage Service, S3. Its target is big sites hosted in an elastic cloud environment, with lots of images in lots of different sizes, especially if the number of sizes tend to increase or change from time to time. 
+acts_as_s3_image is an _ongoing_ effort to minimize the workload of handling of images stored at Amazon Simple Storage Service, S3. Its target is big sites hosted in an elastic cloud environment, with lots of images in lots of different sizes, especially if the number of sizes tend to increase or change from time to time.
 
 acts_as_s3_image extends a model by handling image input, storage, processing and display. It takes image processing off the Rails request-response cycle, passing it on to either a Simple Daemon process or a BackgrounDRb worker and reducing the time the user would have to wait upon submitting an image.
 
-Requirements 
+Requirements
 =======
 
 requires RMagick, 'aws/s3' and either simple-daemon or backgroundrb (or both)
@@ -18,14 +18,14 @@ Example
 A model that acts_as_s3_image looks like this
 
 class Picture < ActiveRecord::Base
-  
+
   belongs_to :user
-  
+
   acts_as_s3_image :sizes => { '266x266'=>[266,266],
                                '118x118'=>[118,118,'fixed'],
                                '29x29'=>[29,29,'fixed']
-                              }, 
-				   :convert_to=>:jpg, 
+                              },
+				   :convert_to=>:jpg,
 				   :use_backgroundrb=>true
 
 end
@@ -39,15 +39,15 @@ end
 == Controller
 
 class PicturesController < ApplicationController
-  
+
   before_filter :must_authenticate
-  
+
   def create
-    @picture = Picture.new(params[:picture])  
+    @picture = Picture.new(params[:picture])
     @picture.user = current_user
     @picture.save
   end
-  
+
 end
 
 Where params[:picture] is your file input/upload field in the picture upload form. Alternatively, you can pass in a file in
@@ -56,13 +56,13 @@ the filesystem, as in @picture = "#{RAILS_ROOT}/somefile.jpg". In doing so, we w
 Notice that you don't have to necessarily extend a Model that holds a picture:
 
 class EventsController < ApplicationController
-    
+
   def create
-    @event = Event.new(params[:event])  
+    @event = Event.new(params[:event])
     @event.picture = params[:flyer][:picture]
     @event.save
   end
-  
+
 end
 
 == Views
@@ -101,9 +101,9 @@ end
 You can find a template under examples. You should move it to the Rails config folder.
 
 s3:
-    access_key_id: 
-    secret_access_key: 
-    bucket: 
+    access_key_id:
+    secret_access_key:
+    bucket:
 app:
     # not used for now
     state_model: image_version

@@ -1,7 +1,7 @@
 s3:
-    access_key_id: 
-    secret_access_key: 
-    bucket: 
+    access_key_id:
+    secret_access_key:
+    bucket:
 app:
     # not used for now
     state_model: image_version
@@ -17,4 +17,4 @@ development:
 production:
     namespace: p
     deployed_to: staging
-    
+
