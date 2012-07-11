@@ -2,19 +2,19 @@ class ImageVersion < ActiveRecord::Base
 
   belongs_to :imageversionable, :polymorphic=>true
   validates_uniqueness_of :imageversionable_type, :scope => [:label, :imageversionable_id]
-  
+
   before_save :set_extension
   after_create :pass_to_worker
   after_save :push_to_s3, :cleanup
   after_destroy :s3_destroy
   after_update :pass_to_worker_reprocess
-  
+
     class << self
-      
+
       def crop(source, target, width, height)
         img = Magick::Image.read(source).first
         if orientation(img) == 'landscape'
-          width, height = height, width 
+          width, height = height, width
         end
         cropped = img.crop_resized(width, height, gravity=Magick::CenterGravity)
         cropped.write target
@@ -24,7 +24,7 @@ class ImageVersion < ActiveRecord::Base
       def resize_to_fit(source, target, width, height)
         img = Magick::Image.read(source).first
         if orientation(img) == 'landscape'
-           width, height = height, width 
+           width, height = height, width
          end
         resized = img.resize_to_fit(width, height)
         resized.write target
@@ -36,13 +36,13 @@ class ImageVersion < ActiveRecord::Base
       def orientation(img)
         (img.rows > img.columns) ? "landscape" : "portrait"
       end
-      
+
       def has_versions?(obj)
         find(:first, :conditions=>["imageversionable_type = ? and imageversionable_id = ? and label is null", obj.class.to_s, obj.id])
       end
 
     end
-    
+
   def check_connection
     unless AWS::S3::Base.connected?
       AWS::S3::Base.establish_connection!(
@@ -50,8 +50,8 @@ class ImageVersion < ActiveRecord::Base
           :secret_access_key => imageversionable.class.config.s3['secret_access_key']
       )
     end
-  end 
-  
+  end
+
   def current_versions
     imageversionable.image_versions
   end
@@ -119,7 +119,7 @@ class ImageVersion < ActiveRecord::Base
   # if you're just adding a new size to your collection it doesn't
   # make sense processing every version there is.
   def process_versions(options = {})
-    pull_from_s3 if not File.exists? local_path    
+    pull_from_s3 if not File.exists? local_path
     versions.each do |k, v|
       version = version_by_label k
       next if (not options[:force]) && (not version.nil?)
@@ -136,21 +136,21 @@ class ImageVersion < ActiveRecord::Base
         imageversionable.image_versions << ImageVersion.new(:label=>k, :state=>"processed")
       end
     end
-    
+
   end
-  
+
   private
-  
+
   def cleanup
     path = local_path self.label
     File.delete(path) rescue nil
   end
-  
+
   def s3_destroy
     check_connection
     AWS::S3::S3Object.delete remote_path, imageversionable.class.config.s3['bucket']
   end
-  
+
   def pass_to_worker
     if imageversionable.class.backgroundrb && (self.label.blank? && self.state == 'unprocessed')
       MiddleMan.new_worker :worker=>:s3_image_worker, :job_key=>self.id, :data=>{:version=>self.id}
@@ -162,7 +162,7 @@ class ImageVersion < ActiveRecord::Base
       MiddleMan.new_worker :worker=>:s3_image_worker, :job_key=>self.id, :data=>{:version=>self.id, :force=>true}
     end
   end
-  
+
   def pick_extension(label='')
     if label.blank?
       extension
@@ -172,9 +172,9 @@ class ImageVersion < ActiveRecord::Base
       original.extension
     end
   end
-  
+
   def set_extension
     self.extension = pick_extension(self.label)
   end
-    
+
 end
